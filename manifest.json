@@ -1,13 +1,22 @@
 {
-	"manifest_version": 3,
-	"name": "Privacy Inspector",
-	"version": "1.0",
-	"permissions": [ "storage", "cookies", "webRequest" ],
-	"host_permissions": [ "<all_urls>" ],
-	"background": {
-		"service_worker": "background.js"
-	},
-	"action": {
-		"default_popup": "popup/index.html"
-	}
+  "manifest_version": 3,
+  "name": "Privacy Inspector",
+  "version": "1.0",
+  "permissions": [
+    "activeTab",
+    "cookies",
+    "storage",
+    "tabs",
+    "webRequest"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup/index.html",
+    "default_title": "Privacy Inspector"
+  }
 }
