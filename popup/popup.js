@@ -18,11 +18,6 @@ function getHostname(url) {
   catch { return "Unknown site"; }
 }
 
-function getRootDomain(hostname) {
-  const parts = hostname.replace(/^www\./, "").split(".");
-  return parts.length > 2 ? parts.slice(-2).join(".") : hostname;
-}
-
 function renderList(element, items, emptyText) {
   element.innerHTML = "";
   if (!items.length) {
@@ -50,41 +45,56 @@ async function getCookiesForTab(tab) {
   catch { return []; }
 }
 
-async function loadPopupData() {
-  const tab = await getCurrentTab();
-  const hostname = getHostname(tab?.url || "");
-  const rootDomain = getRootDomain(hostname);
-  const cookies = await getCookiesForTab(tab);
+const blockingToggle = document.getElementById("blockingToggle");
+const blockingStatus = document.getElementById("blockingStatus");
+const protectionError = document.getElementById("protectionError");
 
-  chrome.storage.local.get(["logs"], ({ logs = {} }) => {
-    const logEntries = Object.entries(logs);
-    const currentLog = logs[hostname] || logs[rootDomain] || { requests: 0, cookies: 0 };
-
-    const thirdParties = logEntries
-      .filter(([domain]) => domain && getRootDomain(domain) !== rootDomain)
-      .sort((a, b) => (b[1].requests || 0) - (a[1].requests || 0))
-      .map(([domain, data]) => `${domain} - ${data.requests || 0} request${(data.requests || 0) > 1 ? "s" : ""}`);
-
-    const cookieDomains = [...new Set(cookies.map((cookie) => cookie.domain.replace(/^\./, "")))]
-      .sort();
-
-    siteDomain.textContent = hostname;
-    totalRequests.textContent = currentLog.requests || 0;
-    thirdPartyRequests.textContent = thirdParties.length;
-    cookieCount.textContent = cookies.length;
-
-    trackerSummary.textContent = thirdParties.length
-      ? `${thirdParties.length} tracker${thirdParties.length > 1 ? "s" : ""} detected`
-      : "No trackers detected";
-
-    cookiesSummary.textContent = cookies.length
-      ? `${cookies.length} cookie${cookies.length > 1 ? "s" : ""} found`
-      : "No cookies found";
-
-    renderList(trackerList, thirdParties, "No third-party trackers detected on this page.");
-    renderList(cookiesList, cookieDomains, "No cookies found on this page.");
-  });
+function renderProtection(state) {
+  blockingToggle.checked = state.enabled;
+  blockingStatus.textContent = state.enabled
+    ? `On · blocking ${state.domainCount} known tracker domains across all sites.`
+    : "Off · browsing activity is only inspected.";
 }
+
+async function loadPopupData() {
+  try {
+    const tab = await getCurrentTab();
+    const state = await chrome.runtime.sendMessage({ type: "get-status", tabId: tab?.id ?? -1 });
+    if (!state?.ok) throw new Error(state?.error || "Unable to load extension data.");
+    renderProtection(state);
+    blockingToggle.disabled = false;
+    const cookies = await getCookiesForTab(tab);
+    const activity = state.activity;
+    const trackers = Object.entries(activity.trackers);
+    siteDomain.textContent = getHostname(tab?.url || "");
+    totalRequests.textContent = activity.total;
+    thirdPartyRequests.textContent = trackers.length;
+    cookieCount.textContent = cookies.length;
+    trackerSummary.textContent = `${trackers.length} known tracker domain${trackers.length === 1 ? "" : "s"} observed`;
+    cookiesSummary.textContent = `${cookies.length} cookie${cookies.length === 1 ? "" : "s"} found`;
+    renderList(trackerList, trackers.sort((a,b) => b[1] - a[1]).map(([domain, count]) => `${domain} — ${count} observed request${count === 1 ? "" : "s"}`), "No known tracker requests observed. Blocked requests are not included.");
+    renderList(cookiesList, [...new Set(cookies.map(cookie => cookie.domain.replace(/^\./, "")))].sort(), "No cookies accessible for this page.");
+    protectionError.textContent = "";
+  } catch (error) {
+    protectionError.textContent = error.message || "Unable to load data. Reload the extension and try again.";
+  }
+}
+
+blockingToggle.addEventListener("change", async () => {
+  const requested = blockingToggle.checked;
+  blockingToggle.disabled = true;
+  try {
+    const state = await chrome.runtime.sendMessage({ type: "set-blocking", enabled: requested });
+    if (!state?.ok) throw new Error(state?.error || "Unable to change tracker blocking.");
+    renderProtection(state);
+    protectionError.textContent = "";
+  } catch (error) {
+    blockingToggle.checked = !requested;
+    protectionError.textContent = error.message || "Unable to change tracker blocking.";
+  } finally {
+    blockingToggle.disabled = false;
+  }
+});
 
 function togglePanel(button, panel) {
   button.classList.toggle("open");

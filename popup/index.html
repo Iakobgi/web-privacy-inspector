@@ -29,17 +29,27 @@
       </button>
     </header>
 
+    <section class="protection-card" aria-label="Tracker protection">
+      <label class="protection-control" for="blockingToggle">
+        <strong>Block trackers</strong>
+        <input id="blockingToggle" type="checkbox" disabled role="switch" aria-describedby="blockingStatus" />
+      </label>
+      <p id="blockingStatus" role="status">Loading protection status...</p>
+      <small>Uses a bundled tracker list. Reload the page after enabling to block requests made during page load.</small>
+      <p id="protectionError" role="alert"></p>
+    </section>
+
     <section class="site-card">
       <div class="site-row">
         <span>Site</span>
         <strong id="siteDomain">Loading...</strong>
       </div>
       <div class="site-row">
-        <span>Total requests</span>
+        <span>Observed requests</span>
         <strong id="totalRequests">0</strong>
       </div>
       <div class="site-row">
-        <span>Third-party requests</span>
+        <span>Known tracker domains</span>
         <strong id="thirdPartyRequests">0</strong>
       </div>
       <div class="site-row">
@@ -48,6 +58,7 @@
       </div>
     </section>
 
+    <p class="activity-note">Current tab, since navigation. Blocked requests are excluded; unknown trackers may not be identified.</p>
     <section class="details-list">
       <button class="detail-item" id="trackersToggle" type="button">
         <span class="detail-icon eye-icon" aria-hidden="true">
@@ -57,7 +68,7 @@
           </svg>
         </span>
         <span>
-          <strong>Third-party Trackers</strong>
+          <strong>Known trackers</strong>
           <small id="trackerSummary">No trackers detected</small>
         </span>
         <span class="chevron">›</span>

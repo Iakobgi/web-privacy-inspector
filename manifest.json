@@ -1,22 +1,35 @@
 {
   "manifest_version": 3,
   "name": "Privacy Inspector",
-  "version": "1.0",
+  "version": "1.1.0",
   "permissions": [
     "activeTab",
     "cookies",
     "storage",
     "tabs",
-    "webRequest"
+    "webRequest",
+    "declarativeNetRequestWithHostAccess"
   ],
   "host_permissions": [
     "<all_urls>"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "action": {
     "default_popup": "popup/index.html",
     "default_title": "Privacy Inspector"
+  },
+  "minimum_chrome_version": "102",
+  "description": "Inspect current-tab requests and cookies, with optional blocking of known third-party trackers.",
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "trackers",
+        "enabled": false,
+        "path": "rules/trackers.json"
+      }
+    ]
   }
 }
